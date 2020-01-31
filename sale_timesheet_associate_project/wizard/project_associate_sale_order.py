@@ -40,6 +40,8 @@ class ProjectAssociateSalesOrder(models.TransientModel):
                               help="Sale Order to associate with project.")
     is_confirm_sale = fields.Boolean(string="Confirm Sale", default=False,
                                      help="Automatic confirm Sale Order after associate it with a project.")
+    is_enable_billable = fields.Boolean(string="Process Billing", default=True,
+                                        help="Automatic associate working time with billing.")
 
     billable_type = fields.Selection([
         ('project_rate', 'At Project Rate'),
@@ -58,7 +60,7 @@ class ProjectAssociateSalesOrder(models.TransientModel):
 
     @api.onchange('billable_type', 'product_id')
     def _onchange_product_id(self):
-        if self.billable_type == 'project_rate':
+        if self.is_enable_billable and self.billable_type == 'project_rate':
             if self.product_id:
                 self.price_unit = self.product_id.lst_price
         else:
@@ -70,7 +72,7 @@ class ProjectAssociateSalesOrder(models.TransientModel):
         if self.project_id.sale_line_id:
             raise UserError(_("The project is already linked to a sales order item."))
 
-        if self.billable_type == 'employee_rate':
+        if self.is_enable_billable and self.billable_type == 'employee_rate':
             # at least one line
             if not self.line_ids:
                 raise UserError(_("At least one line should be filled."))
@@ -79,11 +81,11 @@ class ProjectAssociateSalesOrder(models.TransientModel):
             timesheet_employees = self.env['account.analytic.line'].search(
                 [('task_id', 'in', self.project_id.tasks.ids)]).mapped('employee_id')
             map_employees = self.line_ids.mapped('employee_id')
-            missing_meployees = timesheet_employees - map_employees
-            if missing_meployees:
+            missing_employees = timesheet_employees - map_employees
+            if missing_employees:
                 raise UserError(_(
                     'The Sales Order cannot be associated because you did not enter some employees that entered timesheets on this project. Please list all the relevant employees before creating the Sales Order.\nMissing employee(s): %s') % (
-                                    ', '.join(missing_meployees.mapped('name'))))
+                                    ', '.join(missing_employees.mapped('name'))))
 
         # check here if timesheet already linked to SO line
         timesheet_with_so_line = self.env['account.analytic.line'].search_count(
@@ -101,11 +103,12 @@ class ProjectAssociateSalesOrder(models.TransientModel):
         self.sale_id.onchange_partner_id()
         self.sale_id.onchange_partner_shipping_id()
 
-        # associate the sale lines, the map (optional), and assign existing timesheet to sale lines
-        if self.billable_type == 'project_rate':
-            self._make_billable_at_project_rate(self.sale_id)
-        else:
-            self._make_billable_at_employee_rate(self.sale_id)
+        if self.is_enable_billable:
+            # associate the sale lines, the map (optional), and assign existing timesheet to sale lines
+            if self.billable_type == 'project_rate':
+                self._make_billable_at_project_rate(self.sale_id)
+            else:
+                self._make_billable_at_employee_rate(self.sale_id)
 
         if self.is_confirm_sale:
             # confirm SO
