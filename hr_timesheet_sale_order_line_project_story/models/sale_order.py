@@ -47,7 +47,7 @@ class SaleOrder(models.Model):
 class SaleOrderLine(models.Model):
     _inherit = "sale.order.line"
 
-    # TODO use env.ref("project_agile.project_task_type_story") instead of hardcoded type_id of story
+    # TODO use env.ref("project_agile.project_task_type_story") instead of hardcoded type_id of story/epic
     story_id = fields.Many2one('project.task', 'Story Task', index=True, copy=False,
-                               domain=[("type_id", '=', 7)],
+                               domain=[("type_id", 'in', (7, 9))],
                                help="Associate a story with sales order item.")
