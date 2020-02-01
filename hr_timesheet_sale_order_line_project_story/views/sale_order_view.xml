@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+
+    <record model="ir.ui.view" id="view_order_form">
+        <field name="name">sale.order.form</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+
+            <xpath expr="//field[@name='order_line']/form//field[@name='price_unit']" position="after">
+                <field name="story_id" groups="base.group_user"/>
+            </xpath>
+
+            <xpath expr="//field[@name='order_line']/tree//field[@name='product_uom_qty']" position="before">
+                <field name="story_id" groups="base.group_user"/>
+            </xpath>
+
+        </field>
+    </record>
+
+    <record id="view_order_form_inherit_sale_timesheet" model="ir.ui.view">
+        <field name="name">sale.order.form.sale.timesheet</field>
+        <field name="model">sale.order</field>
+        <field name="inherit_id" ref="sale.view_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//button[@name='action_view_invoice']" position="before">
+                <button type="object"
+                        name="action_view_story"
+                        class="oe_stat_button"
+                        icon="fa-tasks"
+                        attrs="{'invisible': [('stories_count', '=', 0)]}"
+                        groups="project.group_project_user">
+                    <field name="stories_count" widget="statinfo" string="Stories"/>
+                </button>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>
